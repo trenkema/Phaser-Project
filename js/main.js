@@ -6,12 +6,16 @@ var config =
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 1450 },
             debug: false
         }
     },
-    scene: [nivel], //array con las escenas
+    scene: [flappyBird], //array con las escenas
     render: { pixelArt: true },
+    // Flappy Bird
+    PIPE_SPAWN_RATE: 1000,
+    PIPE_VELOCITY: -300,
+    // Zelda
     HERO_SPEED: 5
 };
 
