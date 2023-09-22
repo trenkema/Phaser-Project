@@ -1,22 +1,45 @@
-var config = 
+var gamePrefs =
 {
-    type: Phaser.AUTO,
-    width: 1000,
-    height: 550,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 1450 },
-            debug: false
-        }
-    },
-    scene: [flappyBird], //array con las escenas
-    render: { pixelArt: true },
+    // Space Shooter
+    SHIP_SPEED : 8,
+    SHIP_HEALTH : 2,
+    ENEMY_SPEED : 100,
+    ENEMY_HEALTH: 2,
+    ENEMY_SPAWN_RATE : 400, // ms
+    BULLET_SPEED: -100,
     // Flappy Bird
     PIPE_SPAWN_RATE: 1000,
     PIPE_VELOCITY: -300,
     // Zelda
     HERO_SPEED: 5
+}
+
+var config = 
+{
+    type: Phaser.AUTO,
+    width: 256,
+    height: 512,
+    physics: {
+        // Flappy Bird
+        // default: 'arcade',
+        // arcade: {
+        //     gravity: { y: 1450 },
+        //     debug: false
+        // }
+
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: [gameState], //array con las escenas
+    render: { pixelArt: true },
+    scale: 
+    {
+        mode:Phaser.Scale.FIT,
+        autoCenter:Phaser.Scale.CENTER_BOTH
+     },
 };
 
 var juego = new Phaser.Game(config);

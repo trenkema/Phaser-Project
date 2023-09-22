@@ -46,7 +46,7 @@ class flappyBird extends Phaser.Scene
         this.bird.anims.play('fly');
         this.physics.add.collider(this.bird, this.ground, this.birdHit, null, this);
         
-        this.time.addEvent({ delay: config.PIPE_SPAWN_RATE, callback: this.addRowOfPipes, callbackScope: this, loop: true });
+        this.time.addEvent({ delay: gamePrefs.PIPE_SPAWN_RATE, callback: this.addRowOfPipes, callbackScope: this, loop: true });
     }
 
     update()
@@ -112,7 +112,7 @@ class flappyBird extends Phaser.Scene
     {
         var pipe = this.pipes.create(x, y, 'grass');
         pipe.setImmovable(true);
-        pipe.setVelocity(config.PIPE_VELOCITY, 0);
+        pipe.setVelocity(gamePrefs.PIPE_VELOCITY, 0);
         pipe.body.setAllowGravity(false);
         pipe.checkWorldBounds = true;
         pipe.outOfBoundsKill = true;
