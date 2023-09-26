@@ -13,7 +13,7 @@ class gameState extends Phaser.Scene
     }
 
     preload()
-    { //Carga assets en memoria
+    {
         this.cameras.main.setBackgroundColor("112");
         this.load.setPath('assets/images');
         this.load.image('bg_back', 'background_back.png');
@@ -22,11 +22,15 @@ class gameState extends Phaser.Scene
         this.load.spritesheet('enemy_medium', 'enemy-medium.png', {frameWidth: 32, frameHeight: 16});
         this.load.spritesheet('enemy_big', 'enemy-big.png', {frameWidth: 32, frameHeight: 16});
         this.load.spritesheet('explosion', 'explosion.png', {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('armor', 'spr_armor.png', {frameWidth: 66, frameHeight: 28});
         this.load.image('bullet', 'spr_bullet_0.png');
+        this.load.image('enemyBullet', 'spr_enemy_bullet_0.png');
+        this.load.image('score_bg', 'spr_score_0.png');
+        this.loadFont("retroGaming", "assets/fonts/RetroGaming.ttf");
     }
 
     create()
-    { //Pinta assets en pantalla
+    {
         this.bg_back = this.add.tileSprite(0, 0, config.width, config.height, 'bg_back').setOrigin(0);
         this.bg_front = this.add.tileSprite(0, 0, config.width, config.height, 'bg_front').setOrigin(0);
         this.explosion = this.add.sprite(-100, -100, 'explosion');
@@ -34,26 +38,38 @@ class gameState extends Phaser.Scene
         this.ship = this.physics.add.sprite(config.width/2, config.height * 0.95, 'ship').setScale(1);
         this.ship.body.collideWorldBounds = true;
 
-        this.instructionText = this.add.text(config.width/2, config.height/2, 'Press [ SPACE ] to start\n\n[Kill as much enemies]', { fontSize: '15px', fill: '#FFF', align: 'center' }).setOrigin(0.5, 0.5);
+        this.instructionText = this.add.text(config.width/2, config.height/2, 'Press [ SPACE ] to start\n\n[Kill as many enemies]', { fontSize: '15px', fill: '#FFF', align: 'center', fontFamily: 'retroGaming' }).setOrigin(0.5, 0.5);
         this.instructionText.depth = 1;
 
         this.score = 0;
-        this.scoreText = this.add.text(15, 15, '', { fontSize: '15px', fill: '#FFF' });
+        this.score_bg = this.add.sprite(15, 15, 'score_bg').setVisible(false).setOrigin(0, 0.25);
+        this.scoreText = this.add.text(47.5, 23, '', { fontStyle: 'bold', fontSize: '14px', fill: '#33302e', fontFamily: 'retroGaming' }).setOrigin(0.5, 0.5);
         this.scoreText.depth = 1;
+        this.score_bg.depth = 1;
 
-        this.health = 2;
-        this.healthText = this.add.text(15, 30, '', { fontSize: '15px', fill: '#FFF' });
-        this.healthText.depth = 1;
+        this.armor = 5;
+        this.armorVisual = this.add.tileSprite(15, 40, 0, 0, 'armor', this.armor - 1).setVisible(false).setOrigin(0);
+        this.armorVisual.depth = 1;
 
         this.loadAnimations();
         this.loadPools();
         this.cursores = this.input.keyboard.createCursorKeys();
+
         // Only called first press
         this.cursores.space.on(
             'down',
             function()
             {
                 this.createBullet();
+            },
+            this
+        ); 
+
+        this.cursores.up.on(
+            'down',
+            function()
+            {
+                this.restartGame();
             },
             this
         ); 
@@ -125,12 +141,14 @@ class gameState extends Phaser.Scene
     loadPools()
     {
         this.bulletPool = this.physics.add.group();
+        this.enemyBulletPool = this.physics.add.group();
         this.medium_EnemyPool = this.physics.add.group();
         this.big_EnemyPool = this.physics.add.group();
         this.explosionPool = this.add.group();
 
         this.physics.add.overlap(this.bulletPool, this.medium_EnemyPool, this.enemyHit, null, this);
         this.physics.add.overlap(this.bulletPool, this.big_EnemyPool, this.enemyHit, null, this);
+        this.physics.add.overlap(this.enemyBulletPool, this.ship, this.shipHit, null, this);
         this.physics.add.overlap(this.ship, this.medium_EnemyPool, this.shipHit, null, this);
         this.physics.add.overlap(this.ship, this.big_EnemyPool, this.shipHit, null, this);
     }
@@ -141,6 +159,9 @@ class gameState extends Phaser.Scene
         if (!this.started) 
         {
             this.started = true;
+            this.instructionText.visible = false;
+            this.score_bg.visible = true;
+            this.armorVisual.visible = true;
             return;
         }
 
@@ -162,6 +183,28 @@ class gameState extends Phaser.Scene
         _bullet.body.setVelocity(0, gamePrefs.BULLET_SPEED);
     }
 
+    createEnemyBullet(enemy)
+    {
+        if (this.gameOver || !this.started) return;
+
+        var _bullet = this.enemyBulletPool.getFirst(false);
+
+        if (!_bullet)
+        {
+            console.log('Create enemy bullet');
+            _bullet = new bulletPrefab(this, enemy.x, enemy.body.bottom + 10, 'enemyBullet');
+            this.enemyBulletPool.add(_bullet);
+        }
+        else
+        {
+            console.log('Recycle enemy bullet');
+            _bullet.body.reset(enemy.x, enemy.body.bottom + 10);
+            _bullet.active = true;
+        }
+
+        _bullet.body.setVelocity(0, gamePrefs.ENEMY_BULLET_SPEED);
+    }
+
     createEnemy()
     {
         if (!this.started || this.gameOver) return;
@@ -180,11 +223,13 @@ class gameState extends Phaser.Scene
         else
         {
             console.log('Recycle enemy');
+            _enemy.health = gamePrefs.ENEMY_HEALTH;
             _enemy.body.reset(randomX, -100);
             _enemy.active = true;
         }
 
         _enemy.body.setVelocity(0, gamePrefs.ENEMY_SPEED);
+        _enemy.fireEvent = this.time.addEvent({ delay: gamePrefs.ENEMY_SHOOT_RATE, callback: this.createEnemyBullet, callbackScope: this, loop: true, args: [_enemy] });
     }
 
     createExplosion(posX, posY)
@@ -215,15 +260,32 @@ class gameState extends Phaser.Scene
 
     shipHit(ship, enemy)
     {
-        this.health -= 1;
+        this.armor -= 1;
 
+        this.createExplosion(enemy.x, enemy.y);
         enemy.active = false;
         enemy.setPosition(-200, -100);
         enemy.body.setVelocity(0);
 
-        if (this.health <= 0)
+        if (this.armor <= 0)
         {
             this.gameOver = true;
+            this.createExplosion(ship.x, ship.y + 15);
+
+            ship.active = false;
+            ship.body.collideWorldBounds = false;
+            ship.setPosition(-300, -100);
+            ship.body.setVelocity(0);
+
+            this.instructionText.visible = true;
+            this.scoreText.visible = false;
+            this.score_bg.visible = false;
+            this.armorVisual.visible = false;
+
+            var highScore = localStorage.getItem('highScore');
+            if (this.score > highScore) localStorage.setItem('highScore', this.score);
+            this.instructionText.setText(`Game Over!\nPress [ UP ] to restart\n\nYour score is: ${this.score}\nYour highscore is: ${this.score > highScore ? this.score : highScore}`);
+
             console.log('Game over');
         }
 
@@ -239,32 +301,47 @@ class gameState extends Phaser.Scene
 
         if (enemy.health <= 0)
         {
-            this.createExplosion(enemy.x, enemy.y);
+            this.createExplosion(enemy.x, enemy.y + 15);
 
             enemy.active = false;
             enemy.setPosition(-200, -100);
             enemy.body.setVelocity(0);
             this.score++;
+
+            enemy.fireEvent.remove();
         }
 
         console.log('Enemy hit');
     }
 
+    formatScore(score)
+    {
+        return String(score).padStart(4, '0');
+    }
+
+    restartGame()
+    {
+        if (!this.started) return;
+
+        this.scene.restart();
+    }
+
+    loadFont(name, url) {
+        var newFont = new FontFace(name, `url(${url})`);
+        newFont.load().then(function (loaded) {
+            document.fonts.add(loaded);
+        }).catch(function (error) {
+            return error;
+        });
+    }
+
     update()
-    { //Actualiza whatever         
+    {     
         this.bg_back.tilePositionY -= 0.25;
         this.bg_front.tilePositionY -= 1;
 
-        // if (this.cursores.up.isDown)
-        // {
-        //     this.ship.body.velocity.y -= gamePrefs.SHIP_SPEED;
-        //     this.ship.anims.play('ship_idle', true);
-        // }
-        // else if (this.cursores.down.isDown)
-        // {
-        //     this.ship.body.velocity.y += gamePrefs.SHIP_SPEED;
-        //     this.ship.anims.play('ship_idle', true);
-        // }
+        if (this.gameOver || !this.started) return;
+        
         if (this.cursores.left.isDown)
         {
             this.ship.body.velocity.x -= gamePrefs.SHIP_SPEED;
@@ -281,13 +358,7 @@ class gameState extends Phaser.Scene
             this.ship.body.setVelocity(0);
         }
         
-        if (!this.started) return;
-        this.scoreText.setText('Score: ' + this.score);
-        this.healthText.setText('Health: ' + this.health);
-        this.instructionText.visible = false;
+        this.scoreText.setText(this.formatScore(this.score));
+        this.armorVisual.setFrame(this.armor - 1);
     }
 }
-
-// Enemy 2 health
-// Enemy can shoot
-// Enemy collision with ship is death

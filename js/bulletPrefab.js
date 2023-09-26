@@ -9,7 +9,7 @@ class bulletPrefab extends Phaser.GameObjects.Sprite
 
     preUpdate()
     {
-        if (this.y <= 0)
+        if (this.y <= 0 || this.y >= config.height)
         {
             this.active = false;
         }
