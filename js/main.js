@@ -6,11 +6,11 @@ var gamePrefs =
     BULLET_SPEED: -100,
     ENEMY_SPEED : 100,
     ENEMY_HEALTH: 2,
-    ENEMY_SPAWN_RATE : 500, // ms
-    ENEMY_BULLET_SPEED: 300,
+    ENEMY_SPAWN_RATE : 400, // ms
+    ENEMY_BULLET_SPEED: 300, // ms
     ENEMY_SHOOT_RATE: 3000, // ms
     // Flappy Bird
-    PIPE_SPAWN_RATE: 1000,
+    PIPE_SPAWN_RATE: 1000, // ms
     PIPE_VELOCITY: -300,
     // Zelda
     HERO_SPEED: 5

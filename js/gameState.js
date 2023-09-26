@@ -15,6 +15,7 @@ class gameState extends Phaser.Scene
     preload()
     {
         this.cameras.main.setBackgroundColor("112");
+        this.loadFont("retroGaming", "assets/fonts/RetroGaming.ttf");
         this.load.setPath('assets/images');
         this.load.image('bg_back', 'background_back.png');
         this.load.image('bg_front', 'background_frontal.png');
@@ -26,7 +27,14 @@ class gameState extends Phaser.Scene
         this.load.image('bullet', 'spr_bullet_0.png');
         this.load.image('enemyBullet', 'spr_enemy_bullet_0.png');
         this.load.image('score_bg', 'spr_score_0.png');
-        this.loadFont("retroGaming", "assets/fonts/RetroGaming.ttf");
+
+        this.load.setPath('assets/sounds');
+        this.load.audio('ship_shoot_sound', 'snd_shoot.mp3');
+        this.load.audio('ship_hit_sound', 'snd_ship_hit.wav');
+        this.load.audio('ship_explode_sound', 'explosion.wav');
+        this.load.audio('enemy_shoot_sound', 'snd_enemy_laser.wav');
+        this.load.audio('enemy_hit_sound', 'snd_hit.wav');
+        this.load.audio('enemy_explode_sound', 'snd_explode.wav');
     }
 
     create()
@@ -37,6 +45,17 @@ class gameState extends Phaser.Scene
         this.explosion.setVisible(false);
         this.ship = this.physics.add.sprite(config.width/2, config.height * 0.95, 'ship').setScale(1);
         this.ship.body.collideWorldBounds = true;
+
+        this.ship_shoot_sound = this.sound.add('ship_shoot_sound');
+        this.ship_hit_sound = this.sound.add('ship_hit_sound');
+        this.ship_explode_sound = this.sound.add('ship_explode_sound');
+
+        this.enemy_shoot_sound = this.sound.add('enemy_shoot_sound');
+        this.enemy_shoot_sound.volume = 0.5;
+        this.enemy_hit_sound = this.sound.add('enemy_hit_sound');
+        this.enemy_hit_sound.volume = 0.75;
+        this.enemy_explode_sound = this.sound.add('enemy_explode_sound');
+        this.enemy_explode_sound.volume = 0.75;
 
         this.instructionText = this.add.text(config.width/2, config.height/2, 'Press [ SPACE ] to start\n\n[Kill as many enemies]', { fontSize: '15px', fill: '#FFF', align: 'center', fontFamily: 'retroGaming' }).setOrigin(0.5, 0.5);
         this.instructionText.depth = 1;
@@ -181,6 +200,7 @@ class gameState extends Phaser.Scene
         }
 
         _bullet.body.setVelocity(0, gamePrefs.BULLET_SPEED);
+        this.ship_shoot_sound.play();
     }
 
     createEnemyBullet(enemy)
@@ -203,6 +223,7 @@ class gameState extends Phaser.Scene
         }
 
         _bullet.body.setVelocity(0, gamePrefs.ENEMY_BULLET_SPEED);
+        this.enemy_shoot_sound.play();
     }
 
     createEnemy()
@@ -267,15 +288,19 @@ class gameState extends Phaser.Scene
         enemy.setPosition(-200, -100);
         enemy.body.setVelocity(0);
 
+        this.ship_hit_sound.play();
+
         if (this.armor <= 0)
         {
             this.gameOver = true;
             this.createExplosion(ship.x, ship.y + 15);
+            this.ship_explode_sound.play();
 
             ship.active = false;
             ship.body.collideWorldBounds = false;
             ship.setPosition(-300, -100);
             ship.body.setVelocity(0);
+
 
             this.instructionText.visible = true;
             this.scoreText.visible = false;
@@ -299,9 +324,12 @@ class gameState extends Phaser.Scene
         bullet.setPosition(-100, -100);
         bullet.body.setVelocity(0);
 
+        this.enemy_hit_sound.play();
+
         if (enemy.health <= 0)
         {
             this.createExplosion(enemy.x, enemy.y + 15);
+            this.enemy_explode_sound.play();
 
             enemy.active = false;
             enemy.setPosition(-200, -100);
