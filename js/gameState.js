@@ -10,6 +10,7 @@ class gameState extends Phaser.Scene
     {
         this.started = false;
         this.gameOver = false;
+        this.canShoot = true;
     }
 
     preload()
@@ -24,6 +25,7 @@ class gameState extends Phaser.Scene
         this.load.spritesheet('enemy_big', 'enemy-big.png', {frameWidth: 32, frameHeight: 16});
         this.load.spritesheet('explosion', 'explosion.png', {frameWidth: 16, frameHeight: 16});
         this.load.spritesheet('armor', 'spr_armor.png', {frameWidth: 66, frameHeight: 28});
+        this.load.spritesheet('powerUp', 'spr_power_up.png', {frameWidth: 16, frameHeight: 16});
         this.load.image('bullet', 'spr_bullet_0.png');
         this.load.image('enemyBullet', 'spr_enemy_bullet_0.png');
         this.load.image('score_bg', 'spr_score_0.png');
@@ -35,6 +37,7 @@ class gameState extends Phaser.Scene
         this.load.audio('enemy_shoot_sound', 'snd_enemy_laser.wav');
         this.load.audio('enemy_hit_sound', 'snd_hit.wav');
         this.load.audio('enemy_explode_sound', 'snd_explode.wav');
+        this.load.audio('destroy_powerUp', 'snd_powerup.wav');
     }
 
     create()
@@ -56,6 +59,9 @@ class gameState extends Phaser.Scene
         this.enemy_hit_sound.volume = 0.75;
         this.enemy_explode_sound = this.sound.add('enemy_explode_sound');
         this.enemy_explode_sound.volume = 0.75;
+
+        this.destroy_powerUp = this.sound.add('destroy_powerUp');
+        this.destroy_powerUp.volume = 0.75;
 
         this.instructionText = this.add.text(config.width/2, config.height/2, 'Press [ SPACE ] to start\n\n[Kill as many enemies]', { fontSize: '15px', fill: '#FFF', align: 'center', fontFamily: 'retroGaming' }).setOrigin(0.5, 0.5);
         this.instructionText.depth = 1;
@@ -94,6 +100,7 @@ class gameState extends Phaser.Scene
         ); 
 
         this.time.addEvent({ delay: gamePrefs.ENEMY_SPAWN_RATE, callback: this.createEnemy, callbackScope: this, loop: true });
+        this.time.addEvent({ delay: gamePrefs.POWERUP_SPAWN_RATE, callback: this.createPowerUp, callbackScope: this, loop: true });
     }
 
     loadAnimations()
@@ -155,6 +162,16 @@ class gameState extends Phaser.Scene
                 frameRate: 10,
             }
         )
+
+        this.anims.create(
+            {
+                key: 'powerUp',
+                frames: this.anims.generateFrameNumbers('powerUp', { start: 0, end: 1}),
+                frameRate: 10,
+                yoyo: true,
+                repeat: -1
+            }
+        )
     }
 
     loadPools()
@@ -164,9 +181,11 @@ class gameState extends Phaser.Scene
         this.medium_EnemyPool = this.physics.add.group();
         this.big_EnemyPool = this.physics.add.group();
         this.explosionPool = this.add.group();
+        this.powerUpPool = this.physics.add.group();
 
         this.physics.add.overlap(this.bulletPool, this.medium_EnemyPool, this.enemyHit, null, this);
         this.physics.add.overlap(this.bulletPool, this.big_EnemyPool, this.enemyHit, null, this);
+        this.physics.add.overlap(this.bulletPool, this.powerUpPool, this.powerUpHit, null, this);
         this.physics.add.overlap(this.enemyBulletPool, this.ship, this.shipHit, null, this);
         this.physics.add.overlap(this.ship, this.medium_EnemyPool, this.shipHit, null, this);
         this.physics.add.overlap(this.ship, this.big_EnemyPool, this.shipHit, null, this);
@@ -183,7 +202,8 @@ class gameState extends Phaser.Scene
             this.armorVisual.visible = true;
             return;
         }
-
+        
+        if (!this.canShoot) return;
         var _bullet = this.bulletPool.getFirst(false);
 
         if (!_bullet)
@@ -201,6 +221,8 @@ class gameState extends Phaser.Scene
 
         _bullet.body.setVelocity(0, gamePrefs.BULLET_SPEED);
         this.ship_shoot_sound.play();
+        this.canShoot = false;
+        this.time.delayedCall(gamePrefs.SHIP_FIRE_RATE, this.resetShot, null, this);
     }
 
     createEnemyBullet(enemy)
@@ -279,6 +301,31 @@ class gameState extends Phaser.Scene
           })
     }
 
+    createPowerUp()
+    {
+        if (this.gameOver || !this.started) return;
+
+        var _powerUp = this.powerUpPool.getFirst(false)
+        var randomX = Phaser.Math.FloatBetween(16, config.width - 16);
+
+        if (!_powerUp)
+        {
+            console.log('Create powerUp');
+            _powerUp = new powerUpPrefab(this, randomX, 10, 'powerUp');
+            this.powerUpPool.add(_powerUp);
+        }
+        else
+        {
+            console.log('Recycle powerUp');
+            _powerUp.body.reset(randomX, 10);
+            _powerUp.active = true;
+        }
+
+        var randomXDirection = Phaser.Math.FloatBetween(16, config.width - 16);
+        _powerUp.body.setVelocity(randomXDirection, gamePrefs.POWERUP_SPEED);
+        _powerUp.anims.play('powerUp');
+    }
+
     shipHit(ship, enemy)
     {
         this.armor -= 1;
@@ -300,7 +347,6 @@ class gameState extends Phaser.Scene
             ship.body.collideWorldBounds = false;
             ship.setPosition(-300, -100);
             ship.body.setVelocity(0);
-
 
             this.instructionText.visible = true;
             this.scoreText.visible = false;
@@ -341,6 +387,26 @@ class gameState extends Phaser.Scene
 
         console.log('Enemy hit');
     }
+    
+    powerUpHit(bullet, powerUp)
+    {
+        powerUp.health -= 1;
+        bullet.active = false;
+        bullet.setPosition(-100, -100);
+        bullet.body.setVelocity(0);
+
+        if (powerUp.health <= 0)
+        {
+            this.createExplosion(powerUp.x, powerUp.y);
+            this.destroy_powerUp.play();
+            
+            powerUp.active = false;
+            powerUp.setPosition(-200, -100);
+            powerUp.body.setVelocity(0);
+
+            this.score += gamePrefs.POWERUP_SCORE;
+        }
+    }
 
     formatScore(score)
     {
@@ -363,6 +429,11 @@ class gameState extends Phaser.Scene
         });
     }
 
+    resetShot()
+    {
+        this.canShoot = true;
+    }
+
     update()
     {     
         this.bg_back.tilePositionY -= 0.25;
@@ -383,7 +454,7 @@ class gameState extends Phaser.Scene
         else
         {
             this.ship.anims.play('ship_idle', true);
-            this.ship.body.setVelocity(0);
+            //this.ship.body.setVelocity(0);
         }
         
         this.scoreText.setText(this.formatScore(this.score));

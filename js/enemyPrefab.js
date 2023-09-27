@@ -9,12 +9,14 @@ class enemyPrefab extends Phaser.GameObjects.Sprite
         this.fireEvent = null;
     }
 
-    preUpdate()
+    preUpdate(time, delta)
     {
         if (this.y >= config.height)
         {
             this.active = false;
             this.fireEvent.remove();
         }
+
+        super.preUpdate(time,delta);
     }
 }

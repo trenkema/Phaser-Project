@@ -1,14 +1,19 @@
 var gamePrefs =
 {
     // Space Shooter
-    SHIP_SPEED : 8,
+    SHIP_SPEED : 4,
     SHIP_HEALTH : 2,
-    BULLET_SPEED: -100,
+    SHIP_FIRE_RATE: 200,
+    BULLET_SPEED: -125,
     ENEMY_SPEED : 100,
     ENEMY_HEALTH: 2,
     ENEMY_SPAWN_RATE : 400, // ms
     ENEMY_BULLET_SPEED: 300, // ms
     ENEMY_SHOOT_RATE: 3000, // ms
+    POWERUP_SPEED: 95,
+    POWERUP_SPAWN_RATE: 20000, // ms
+    POWERUP_SCORE: 25,
+    POWERUP_HEALTH: 2,
     // Flappy Bird
     PIPE_SPAWN_RATE: 1000, // ms
     PIPE_VELOCITY: -300,
