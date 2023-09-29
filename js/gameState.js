@@ -42,6 +42,7 @@ class gameState extends Phaser.Scene
 
     create()
     {
+        // Sprites
         this.bg_back = this.add.tileSprite(0, 0, config.width, config.height, 'bg_back').setOrigin(0);
         this.bg_front = this.add.tileSprite(0, 0, config.width, config.height, 'bg_front').setOrigin(0);
         this.explosion = this.add.sprite(-100, -100, 'explosion');
@@ -49,6 +50,7 @@ class gameState extends Phaser.Scene
         this.ship = this.physics.add.sprite(config.width/2, config.height * 0.95, 'ship').setScale(1);
         this.ship.body.collideWorldBounds = true;
 
+        // Sounds
         this.ship_shoot_sound = this.sound.add('ship_shoot_sound');
         this.ship_hit_sound = this.sound.add('ship_hit_sound');
         this.ship_explode_sound = this.sound.add('ship_explode_sound');
@@ -62,7 +64,7 @@ class gameState extends Phaser.Scene
 
         this.destroy_powerUp = this.sound.add('destroy_powerUp');
         this.destroy_powerUp.volume = 0.75;
-
+        
         this.instructionText = this.add.text(config.width/2, config.height/2, 'Press [ SPACE ] to start\n\n[Kill as many enemies]', { fontSize: '15px', fill: '#FFF', align: 'center', fontFamily: 'retroGaming' }).setOrigin(0.5, 0.5);
         this.instructionText.depth = 1;
 
@@ -86,6 +88,7 @@ class gameState extends Phaser.Scene
             function()
             {
                 this.createBullet();
+                this.startGame();
             },
             this
         ); 
@@ -191,19 +194,21 @@ class gameState extends Phaser.Scene
         this.physics.add.overlap(this.ship, this.big_EnemyPool, this.shipHit, null, this);
     }
 
+    startGame()
+    {
+        if (this.started) return;
+
+        this.started = true;
+        this.instructionText.visible = false;
+        this.score_bg.visible = true;
+        this.armorVisual.visible = true;
+    }
+
     createBullet()
     {
-        if (this.gameOver) return;
-        if (!this.started) 
-        {
-            this.started = true;
-            this.instructionText.visible = false;
-            this.score_bg.visible = true;
-            this.armorVisual.visible = true;
-            return;
-        }
-        
+        if (this.gameOver || !this.started) return;
         if (!this.canShoot) return;
+        
         var _bullet = this.bulletPool.getFirst(false);
 
         if (!_bullet)
