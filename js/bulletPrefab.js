@@ -15,4 +15,13 @@ class bulletPrefab extends Phaser.GameObjects.Sprite
 
         super.preUpdate(time,delta);
     }
+
+    deActivate(posX)
+    {
+        if (!this.active) return;
+
+        this.active = false;
+        this.setPosition(posX, -100);
+        this.body.setVelocity(0);
+    }
 }

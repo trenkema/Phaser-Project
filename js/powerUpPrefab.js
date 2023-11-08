@@ -4,6 +4,7 @@ class powerUpPrefab extends Phaser.GameObjects.Sprite
     {
         super(_scene, _posX, _posY, _spriteTag);
         _scene.add.existing(this);
+
         this.health = gamePrefs.POWERUP_HEALTH;
     }
 
@@ -26,5 +27,14 @@ class powerUpPrefab extends Phaser.GameObjects.Sprite
         }
 
         super.preUpdate(time,delta);
+    }
+
+    deActivate()
+    {
+        if (!this.active) return;
+
+        this.active = false;
+        this.setPosition(-200, -100);
+        this.body.setVelocity(0);
     }
 }
